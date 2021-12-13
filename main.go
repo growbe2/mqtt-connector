@@ -10,11 +10,17 @@ import (
 	"os"
 	"strings"
 	"time"
+	"encoding/json"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/openfaas/connector-sdk/types"
 	"github.com/openfaas/faas-provider/auth"
 )
+
+type Event struct {
+	Topic string
+	Body []byte
+}
 
 func main() {
 	var (
@@ -124,7 +130,7 @@ func main() {
 		for {
 			incoming := <-msgCh
 
-			topic := incoming[0]
+			topic1 := incoming[0]
 			data := []byte(incoming[1])
 
 			if trimChannelKey {
@@ -133,9 +139,17 @@ func main() {
 				topic = topic[index+1:]
 			}
 
-			log.Printf("Invoking (%s) on topic: %q, value: %q", gatewayURL, topic, data)
+			log.Printf("Invoking (%s) on topic: %q, value: %q", gatewayURL, topic1, data)
 
-			controller.Invoke(topic, &data)
+
+			event := &Event{Topic: topic1, Body: data}
+			b, err := json.Marshal(event)
+    		if err != nil {
+        		fmt.Println(err)
+        		return
+    		}
+
+			controller.Invoke(topic, &b)
 
 			receiveCount++
 		}
